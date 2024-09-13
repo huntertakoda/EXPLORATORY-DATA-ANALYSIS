@@ -1,0 +1,149 @@
+# EXPLORATORY DATA ANALYSIS
+
+SELECT *
+FROM layoffs_staging2
+;
+
+SELECT MAX(total_laid_off), MAX(percentage_laid_off)
+FROM layoffs_staging2
+;
+
+SELECT *
+FROM layoffs_staging2
+WHERE percentage_laid_off = 1
+ORDER BY total_laid_off DESC
+;
+
+SELECT *
+FROM layoffs_staging2
+WHERE percentage_laid_off = 1
+ORDER BY funds_raised_millions DESC
+;
+
+SELECT company, SUM(total_laid_off)
+FROM layoffs_staging2
+GROUP BY company
+ORDER BY 2 DESC
+;
+
+SELECT MIN(`date`), MAX(`date`)
+FROM layoffs_staging2
+;
+
+# DATE RANGE = 2020-03-11 -> 2023-03-06
+# FROM EARLY 2020 TO EARLY 2023
+
+SELECT industry, SUM(total_laid_off)
+FROM layoffs_staging2
+GROUP BY industry
+ORDER BY 2 DESC
+;
+
+# ALTHOUGH ASSUMPTIONS, RETAIL (43613) AND CONSUMER (45182) INDUSTRIES FACED THE MOST LAY OFFS -
+# LIKELY DUE TO COVID, SINCE PEOPLE WEREN'T COMMONLY ABLE TO ENTER THE STORES
+# LOWEST NUMBERS OF LAYOFFS WERE MANUFACTURING (20), FIN-TECH (215), AEROSPACE (661), 
+# AND ENERGY (802)
+# SOME RELATIVELY MID-NUMBERS OF LAYOFFS WERE DATA (5135), MEDIA (5234), AND LOGISTICS (4026)
+
+SELECT *
+FROM layoffs_staging2
+;
+
+SELECT country, SUM(total_laid_off)
+FROM layoffs_staging2
+GROUP BY country
+ORDER BY 2 DESC
+;
+
+# UNITED STATES HAD MOST LAY OFFS BY A LANDSLIDE
+# IN DESC ORDER, US LAYOFFS (256559), INDIA (35993), NETHERLANDS (17220), SWEDEN (11264)
+# LOWEST LAYOFFS:
+# MYANMAR (200), DENMARK (240), SPAIN (250), FINLAND (250), IRELAND (257)
+
+SELECT YEAR(`date`), SUM(total_laid_off)
+FROM layoffs_staging2
+GROUP BY YEAR(`date`)
+ORDER BY 1 DESC
+;
+
+# 2023 - 125677 LAID OFF (in first 3 months of 2023)
+# 2022 - 160661 LAID OFF
+# 2021 - 15823 LAID OFF
+# 2020 - 80998 LAID OFF
+
+SELECT stage, SUM(total_laid_off)
+FROM layoffs_staging2
+GROUP BY stage
+ORDER BY 2 DESC
+;
+
+SELECT company, AVG(percentage_laid_off)
+FROM layoffs_staging2
+GROUP BY company
+ORDER BY 2 DESC
+;
+
+# PROGRESSION OF LAYOFFS
+
+SELECT SUBSTRING(`date`,1,7) AS `MONTH`, SUM(total_laid_off)
+FROM layoffs_staging2
+WHERE SUBSTRING(`date`,1,7) IS NOT NULL
+GROUP BY `MONTH`
+ORDER BY 1 ASC
+;
+
+# ROLLING SUM
+
+WITH Rolling_Total AS 
+(
+SELECT SUBSTRING(`date`,1,7) AS `MONTH`, SUM(total_laid_off) AS total_off
+FROM layoffs_staging2
+WHERE SUBSTRING(`date`,1,7) IS NOT NULL
+GROUP BY `MONTH`
+ORDER BY 1 ASC
+)
+SELECT `MONTH`, total_off
+,SUM(total_off) OVER(ORDER BY `MONTH`) AS rolling_total
+FROM Rolling_Total
+;
+
+# SHOWCASES THE AMOUNT OF TOTAL LAYOFFS FROM 2020 - 2023 
+# ALONGSIDE THE AMOUNT OF LAYOFFS FOR EACH MONTH
+# JUXTAPOSED, THE ROLLING TOTAL SHOWCASES
+# THE TOTAL AMOUNT WHEN THAT MONTH'S LAYOFFS ARE ADDED TO THE ROLLING_TOTAL
+
+SELECT company, YEAR(`date`), SUM(total_laid_off)
+FROM layoffs_staging2
+GROUP BY company, YEAR(`date`)
+ORDER BY 3 DESC
+;
+
+# FIND WHO LAID OFF THE MOST PEOPLE OFF PER YEAR
+
+WITH Company_Year (company, years, total_laid_off) AS
+(
+SELECT company, YEAR(`date`), SUM(total_laid_off)
+FROM layoffs_staging2
+GROUP BY company, YEAR(`date`)
+), Company_Year_Rank AS
+(SELECT *, 
+DENSE_RANK() OVER (PARTITION BY years ORDER BY total_laid_off DESC) AS Ranking
+FROM Company_Year
+WHERE years IS NOT NULL
+)
+SELECT *
+FROM Company_Year_Rank
+WHERE Ranking <= 5
+;
+
+# 2020 TOP 5 MOST LAID OFF:
+# Uber (7525), Booking.com (4375), Groupon (2800), Swiggy (2250), Airbnb (1900)
+# 2021 TOP 5 MOST LAID OFF
+# Bytedance (3600), Katerra (2434), Zillow (2000), Instacart (1877), WhiteHat Jr (1800)
+# 2022 TOP 5 MOST LAID OFF
+# Meta (11000), Amazon (10150), Cisco (4100), Peloton (4084), Carvana (4000), Philips (4000)
+# 2023 TOP 5 MOST LAID OFF, FIRST 3 MONTHS ANYWAYS
+# Google (12000), Microsoft (10000), Ericsson (8500), Amazon (8000), Salesforce (8000),
+# Dell (6650)
+
+
